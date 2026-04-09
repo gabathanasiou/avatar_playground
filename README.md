@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# 🛸 LIS Sync Avatar & NPC Social Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A state-of-the-art, procedurally-generated avatar system built with **React**, **SVG**, and **TypeScript**. This project features a high-fidelity SVG animation engine paired with a stateful NPC social logic and NLP-driven dialogue system.
 
-Currently, two official plugins are available:
+![Avatar Showcase](https://via.placeholder.com/800x400.png?text=Procedural+SVG+Avatar+System) *(Note: Replace with actual screenshot)*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Key Features
 
-## React Compiler
+### 🧬 Procedural Genetics
+- Every avatar is deterministically generated from a unique **seed string**.
+- Millions of permutations: skin tones, body shapes, hair styles, accessories, and facial hair.
+- 100% SVG-based for crisp rendering at any scale.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🏃 4-Way Animated Controller
+- **JS-Driven Sprite Logic**: Framerate-independent walking animations designed to eliminate loop stutter.
+- **Anatomical Depth**: Real-time leg foreshortening and dynamic shoe-swapping for front/back movement.
+- **Turntable Rendering**: Smooth transitions between front, back, and side views.
 
-## Expanding the ESLint configuration
+### 🧠 NPC Social Brain
+- **Stateful Attention Engine**: NPCs alternate between "Locked Tracking" (eye contact) and "Environmental Wandering" based on social context.
+- **Social Weighting**: Gaze behavior changes dynamically during greetings, active chatting, or ambient passing.
+- **Vector-Normalized Movement**: Smooth, consistent travel speed across all axes, including diagonal movement.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 🗨️ Paged Dialogue & NLP
+- **Archetype-Based Generation**: NPCs use Questions, Rumors, Advice, and Simple statements to create varied conversations.
+- **Emotional Synchronization**: Facial expressions update in real-time to match the emotional tone of each dialogue page.
+- **Mundane Sci-Fi World**: A massive procedural word bank describing the daily life of a futuristic village dome.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🚀 Getting Started
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Prerequisites
+- Node.js (v18+)
+- npm
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/lis-sync-avatar.git
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📖 Documentation
+For a deep dive into the technical architecture, see [AVATAR_SYSTEM.md](./AVATAR_SYSTEM.md).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🛠️ Built With
+- **React** - Component architecture
+- **TypeScript** - Type safety & logic
+- **Vite** - Build toolchain
+- **Vanilla CSS** - Premium styling & animations
+- **SVG** - Vector-based character rendering
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+*Created with ❤️ for the future of autonomous NPC social dynamics.*
