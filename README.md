@@ -1,4 +1,4 @@
-# 🛸 LIS Sync Avatar & NPC Social Engine
+# 🛸 LIP Sync Avatar & NPC Social Engine
 
 A state-of-the-art(ish), procedurally-generated avatar system built with **React**, **SVG**, and **TypeScript**. This project features a high-fidelity SVG animation engine paired with a stateful NPC social logic and NLP-driven dialogue system.
 
