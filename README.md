@@ -50,6 +50,3 @@ For a deep dive into the technical architecture, see [AVATAR_SYSTEM.md](./AVATAR
 - **Vite** - Build toolchain
 - **Vanilla CSS** - Premium styling & animations
 - **SVG** - Vector-based character rendering
-
----
-*Created with ❤️ for the future of autonomous NPC social dynamics.*
