@@ -1,8 +1,6 @@
 # 🛸 LIS Sync Avatar & NPC Social Engine
 
-A state-of-the-art, procedurally-generated avatar system built with **React**, **SVG**, and **TypeScript**. This project features a high-fidelity SVG animation engine paired with a stateful NPC social logic and NLP-driven dialogue system.
-
-![Avatar Showcase](https://via.placeholder.com/800x400.png?text=Procedural+SVG+Avatar+System) *(Note: Replace with actual screenshot)*
+A state-of-the-art(ish), procedurally-generated avatar system built with **React**, **SVG**, and **TypeScript**. This project features a high-fidelity SVG animation engine paired with a stateful NPC social logic and NLP-driven dialogue system.
 
 ## ✨ Key Features
 
@@ -13,13 +11,10 @@ A state-of-the-art, procedurally-generated avatar system built with **React**, *
 
 ### 🏃 4-Way Animated Controller
 - **JS-Driven Sprite Logic**: Framerate-independent walking animations designed to eliminate loop stutter.
-- **Anatomical Depth**: Real-time leg foreshortening and dynamic shoe-swapping for front/back movement.
-- **Turntable Rendering**: Smooth transitions between front, back, and side views.
 
 ### 🧠 NPC Social Brain
 - **Stateful Attention Engine**: NPCs alternate between "Locked Tracking" (eye contact) and "Environmental Wandering" based on social context.
 - **Social Weighting**: Gaze behavior changes dynamically during greetings, active chatting, or ambient passing.
-- **Vector-Normalized Movement**: Smooth, consistent travel speed across all axes, including diagonal movement.
 
 ### 🗨️ Paged Dialogue & NLP
 - **Archetype-Based Generation**: NPCs use Questions, Rumors, Advice, and Simple statements to create varied conversations.
