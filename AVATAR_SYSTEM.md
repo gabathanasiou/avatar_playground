@@ -188,14 +188,17 @@ Fallback: when `speaking=true` and `audioVolume=0`, a 150ms interval toggles mou
 ## 9. Porting to a Game Character Controller
 
 ```ts
-// Map game state → Avatar props
-const direction =
-    velocity.x > 0 ? 'right' :
-    velocity.x < 0 ? 'left'  :
-    velocity.y < 0 ? 'back'  : 'front';
-
 const walking = velocity.x !== 0 || velocity.y !== 0;
 ```
+
+### Movement Normalization
+To prevent "diagonal speed boost" (where X+Y is 1.4x faster than X alone), the world uses vector normalization:
+```ts
+const length = Math.hypot(inputX, inputY) || 1;
+const dx = (inputX / length) * MOVE_SPEED;
+const dy = (inputY / length) * MOVE_SPEED;
+```
+This ensures consistent travel speed regardless of input direction.
 
 ### Extending frame rate
 Change `150ms` interval and `% 4` modulo. Drop to `100ms` for faster characters. The pose tables scale with any frame count.
@@ -229,9 +232,43 @@ For maximum expressiveness, **Eyebrows** and **Accessories (Glasses)** are rende
 ## 12. File Structure
 
 ```
-src/
-├── Avatar.tsx       # Main component: genetics, behaviors, rendering
-├── types.ts         # Expression type
-├── index.css        # Expression idle animations
-└── App.tsx          # Demo UI
+├── Avatar.tsx              # Main component: genetics, behaviors, rendering
+├── types.ts                # Expression and Social Types 
+├── index.css               # Expression idle animations
+├── components/
+│   ├── GameWorld.tsx       # Physics, AI loops, and Social State
+│   ├── DialogueBox.tsx     # Paged RPG-style UI
+│   └── WelcomeScreen.tsx   # Game Entry Point
+└── utils/
+    └── sentenceFactory.ts # Archetype-based NLP engine
 ```
+
+---
+
+## 13. The Social Brain (NPC Dynamics)
+
+The system evolves from a character renderer into a **Social Ecosystem** through several layers of intelligence.
+
+### Stateful Attention Engine
+Unlike simple "look-at" logic, NPCs use a **Phase-Based Machine**:
+- **Locked Phase**: The NPC real-time tracks a target (player or another NPC).
+- **Wander Phase**: The gaze drifts to random environmental points.
+- **Social Weighting**: Probabilities shift based on `socialContext`:
+    - `greeting`: 85% Tracking (Intense focus)
+    - `chatting`: 50% Tracking (Casual eye contact)
+    - `ambient`: 20% Tracking (Passerby glance)
+
+### Multi-Page Dialogue & Emotional Sync
+Dialogue is generated as an array of `DialoguePage` objects. This allows a single interaction to have **emotional transitions**:
+1. NPC generates a 2-3 page story.
+2. Each page has its own `expression`.
+3. The `GameWorld` updates the NPC's `expression` state as the player clicks through.
+
+### Archetype-based NLP
+Sentences avoid a single template by using **Archetypes**:
+- **Question**: "Is it just me, or is [X] [Y]?"
+- **Rumor**: "Word on the street is [X] [Z] [Time]."
+- **Advice**: "If I were you, I'd [Action]..."
+- **Simple**: "I like bread."
+
+This creates millions of unique permutations across a mundane Sci-Fi vocabularly.
