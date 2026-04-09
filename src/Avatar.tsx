@@ -10,6 +10,8 @@ interface AvatarProps {
     audioVolume?: number; // 0.0 to 1.0 for smart lip sync
     direction?: 'front' | 'left' | 'right' | 'back';
     walking?: boolean;
+    gazeAt?: { x: number; y: number }; // normalized -1 to 1 offset for pupils. Ignored when speaking.
+    socialContext?: 'greeting' | 'chatting' | 'ambient';
 }
 
 const HAIR_COLORS = [
@@ -21,7 +23,7 @@ const SKIN_TONES = [
     '#FFD54F', '#90CAF9', '#A5D6A7', '#F48FB1', '#CE93D8', '#BCAAA4', '#80CBC4', '#E6EE9C'
 ];
 
-export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = '', expression = 'NEUTRAL', speaking = false, audioVolume = 0, direction = 'front', walking = false }) => {
+export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = '', expression = 'NEUTRAL', speaking = false, audioVolume = 0, direction = 'front', walking = false, gazeAt, socialContext = 'ambient' }) => {
     const [blinking, setBlinking] = useState(false);
     const [gaze, setGaze] = useState({ x: 0, y: 0 });
     const [mouthState, setMouthState] = useState(0); // 0 = closed, 1 = open
@@ -56,7 +58,7 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
     }, [seed]);
 
     // --- BEHAVIOR LOOPS ---
-    // 1 & 2. Blinking & Gaze Loop
+    // 1. Blinking Loop
     useEffect(() => {
         let blinkTimeout: number;
         const triggerBlink = () => {
@@ -66,38 +68,84 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
             blinkTimeout = window.setTimeout(triggerBlink, nextBlink);
         };
         blinkTimeout = window.setTimeout(triggerBlink, Math.random() * 2000);
+        return () => clearTimeout(blinkTimeout);
+    }, [expression]);
 
-        let gazeTimeout: number;
-        const moveEyes = () => {
-            if (expression === 'SHOCKED') {
-                setGaze({ x: (Math.random() - 0.5) * 6, y: (Math.random() - 0.5) * 6 });
-                gazeTimeout = window.setTimeout(moveEyes, 100);
-            } else if (expression === 'SMUG') {
-                setGaze({ x: 0, y: 0 });
-                gazeTimeout = window.setTimeout(moveEyes, 2000);
-            } else if (expression === 'THINKING') {
-                setGaze({ x: 0, y: -5 }); // Look up
-                gazeTimeout = window.setTimeout(moveEyes, 2000);
-            } else if (expression === 'ANGRY') {
-                setGaze({ x: 0, y: 2 }); // Look intense
-                gazeTimeout = window.setTimeout(moveEyes, 3000);
-            } else {
-                const r = Math.random();
-                if (r < 0.7) {
-                    setGaze({ x: (Math.random() - 0.5) * 12, y: (Math.random() - 0.5) * 8 });
-                } else {
-                    setGaze({ x: 0, y: 0 });
-                }
-                gazeTimeout = window.setTimeout(moveEyes, Math.random() * 3000 + 2000);
+    // 2. Attention Engine — Stateful machine with real-time tracking
+    const currentGazeAt = useRef(gazeAt);
+    useEffect(() => { currentGazeAt.current = gazeAt; }, [gazeAt]);
+
+    useEffect(() => {
+        let timer: number;
+        let trackingInterval: number;
+        const stateRef = { active: true, phase: 'wandering' as 'attending' | 'wandering' };
+
+        // Real-time tracking loop (runs only during 'attending' phase)
+        const updateGazePosition = () => {
+            if (!stateRef.active) return;
+            const target = currentGazeAt.current;
+
+            if (stateRef.phase === 'attending' && target && !speaking) {
+                // Smoothly update pupil position to follow target
+                const gx = Math.max(-1, Math.min(1, target.x)) * 9;
+                const gy = Math.max(-1, Math.min(1, target.y)) * 6;
+                setGaze({ x: gx, y: gy });
+            } else if (stateRef.phase === 'attending' && (!target || speaking)) {
+                // If we lose target or start speaking while 'attending', force wander
+                transition('wandering');
             }
         };
-        moveEyes();
+
+        const transition = (nextPhase: 'attending' | 'wandering') => {
+            if (!stateRef.active) return;
+            stateRef.phase = nextPhase;
+            window.clearTimeout(timer);
+
+            if (nextPhase === 'attending') {
+                // Duration of focus: 1.5s to 4s
+                const duration = 1500 + Math.random() * 2500;
+                timer = window.setTimeout(() => decideNext(), duration);
+            } else {
+                // Duration of wander: 1s to 2.5s
+                const duration = 1000 + Math.random() * 1500;
+                // Move eyes to a random "unfocused" spot once
+                setGaze({ x: (Math.random() - 0.5) * 14, y: (Math.random() - 0.5) * 10 });
+                timer = window.setTimeout(() => decideNext(), duration);
+            }
+        };
+
+        const decideNext = () => {
+            if (!stateRef.active) return;
+            const target = currentGazeAt.current;
+            
+            if (!target) {
+                // No neighbor? Just keep wandering
+                transition('wandering');
+                return;
+            }
+
+            // Determine probability based on social context
+            let prob = 0.3; // Ambient fallback
+            if (socialContext === 'greeting') prob = 0.85;
+            else if (socialContext === 'chatting') prob = 0.50;
+            else if (socialContext === 'ambient') prob = 0.20;
+
+            if (speaking) prob *= 0.6; // Speaking characters are 40% less likely to focus
+
+            transition(Math.random() < prob ? 'attending' : 'wandering');
+        };
+
+        // Start the machine
+        trackingInterval = window.setInterval(updateGazePosition, 50); // 20fps tracking
+        decideNext();
 
         return () => {
-            clearTimeout(blinkTimeout);
-            clearTimeout(gazeTimeout);
+            stateRef.active = false;
+            window.clearTimeout(timer);
+            window.clearInterval(trackingInterval);
         };
-    }, [expression]);
+    }, [expression, speaking, !!gazeAt, socialContext]);
+
 
     // 3. Speaking Loop (Fallback Mouth Animation for when not using real-time audio)
     useEffect(() => {
@@ -168,12 +216,94 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
 
     const HairBack = () => {
         const { hairType, hairColor } = features;
-        if (hairType === 3) // Afro Back
-            return <circle cx="50" cy="50" r="55" fill={hairColor} stroke="black" strokeWidth="3" />;
-        if (hairType === 4) // Long Back
-            return <path d="M 20 50 L 10 95 L 90 95 L 80 50 Z" fill={hairColor} stroke="black" strokeWidth="3" />;
-        if (hairType === 7) // Ponytail
-            return <circle cx="85" cy="50" r="15" fill={hairColor} stroke="black" strokeWidth="3" />;
+        const stroke = "black";
+        const strokeWidth = "3";
+        
+        switch (hairType) {
+            case 1: // Spiky Back
+                return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 65 Q 50 75 2 65 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+            case 2: // Bob Back
+                return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 75 Q 50 85 2 75 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+            case 3: // Afro Back
+                return <circle cx="50" cy="50" r="55" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />;
+            case 4: // Long Back
+                return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 90 L 2 90 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+            case 5: // Mohawk Back strip
+                return <path d="M 45 5 L 55 5 L 52 80 L 48 80 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+            case 6: // Crazy Back
+                return (
+                    <g>
+                        <path d="M 10 40 Q 0 10 30 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                        <path d="M 90 40 Q 100 10 70 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                        <path d="M 40 20 L 50 0 L 60 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                    </g>
+                );
+            case 7: { // Ponytail
+                const cx = (direction === 'back' || direction === 'right') ? 15 : 85;
+                const base = <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 65 Q 50 75 2 65 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+                const bun = <circle cx={cx} cy="50" r="15" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />;
+                return (
+                    <g>
+                        {base}
+                        {direction !== 'back' && bun}
+                    </g>
+                );
+            }
+            default: return null;
+        }
+    };
+
+    const HairScalp = () => {
+        const { hairType, hairColor } = features;
+        if (hairType === 0) return null;
+
+        const isBack = direction === 'back';
+        const isLeft = direction === 'left';
+        const isRight = direction === 'right';
+        const isSide = isLeft || isRight;
+
+        if (!isBack && !isSide) return null;
+
+        const stroke = "black";
+        
+        if (isBack) {
+            switch (hairType) {
+                case 1: return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 65 Q 50 75 2 65 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+                case 2: return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 75 Q 50 85 2 75 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+                case 3: return <circle cx="50" cy="50" r="55" fill={hairColor} stroke={stroke} strokeWidth="3" />;
+                case 4: return <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 90 L 2 90 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+                case 5: return <path d="M 45 5 L 55 5 L 52 80 L 48 80 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+                case 7: return (
+                    <g>
+                        <path d="M 2 50 A 48 48 0 0 1 98 50 L 98 65 Q 50 75 2 65 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />
+                        <circle cx="15" cy="50" r="15" fill={hairColor} stroke={stroke} strokeWidth="3" />
+                    </g>
+                );
+                default: return null;
+            }
+        }
+
+        if (isSide) {
+            const rightCap = <path d="M 20 12 A 48 48 0 0 1 98 50 L 98 70 Q 75 80 50 40 Q 30 30 20 12 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+            const leftCap = <path d="M 80 12 A 48 48 0 0 0 2 50 L 2 70 Q 25 80 50 40 Q 70 30 80 12 Z" fill={hairColor} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />;
+            
+            switch (hairType) {
+                case 1:
+                case 2:
+                case 4:
+                case 7:
+                    return (
+                        <g>
+                            {isLeft ? rightCap : leftCap}
+                            {hairType === 7 && isLeft && <circle cx="65" cy="50" r="15" fill={hairColor} stroke={stroke} strokeWidth="3" />}
+                        </g>
+                    );
+                case 3:
+                case 5:
+                default:
+                    return null;
+            }
+        }
         return null;
     };
 
@@ -184,15 +314,33 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
 
         const transform = expression === 'SHOCKED' ? "translate(0, -5)" : "";
 
+        if (direction === 'back') {
+            // Front-specific bangs or holes shouldn't render when facing away,
+            // only hair that sits exclusively on top top.
+            if (hairType === 1) return <path d="M 20 30 L 30 10 L 40 30 L 50 5 L 60 30 L 70 10 L 80 30" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} transform={transform} />;
+            if (hairType === 6) return (
+                <g transform={transform}>
+                    <path d="M 10 40 Q 0 10 30 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                    <path d="M 90 40 Q 100 10 70 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                    <path d="M 40 20 L 50 0 L 60 20" fill="none" stroke={hairColor} strokeWidth="5" strokeLinecap="round" />
+                </g>
+            );
+            return null;
+        }
+
         switch (hairType) {
             case 1: // Spiky
-                return <path d="M 20 30 L 30 10 L 40 30 L 50 5 L 60 30 L 70 10 L 80 30" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} transform={transform} />;
-            case 2: // Bob
-                return <path d="M 15 30 Q 50 5 85 30 L 85 60 Q 85 70 75 60 L 75 30 Q 50 35 25 30 L 25 60 Q 15 70 15 60 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />;
+                return (
+                    <g transform={transform}>
+                        <path d="M 20 35 L 30 10 L 40 33 L 50 5 L 60 33 L 70 10 L 80 35" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />
+                    </g>
+                );
+            case 2: // Bob (Fuller dome)
+                return <path d="M 12 40 A 38 38 0 0 1 88 40 L 88 70 Q 88 80 78 70 L 78 40 Q 50 48 22 40 L 22 70 Q 12 80 12 70 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />;
             case 3: // Afro Front
                 return <path d="M 15 40 Q 50 10 85 40" fill="none" stroke={hairColor} strokeWidth="18" strokeLinecap="round" />;
-            case 4: // Long Front (Bangs)
-                return <path d="M 20 30 Q 50 35 80 30" fill="none" stroke={hairColor} strokeWidth="10" strokeLinecap="round" />;
+            case 4: // Long Front (Bangs + Top Cap)
+                return <path d="M 12 40 A 38 38 0 0 1 88 40 Q 50 50 12 40 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} />;
             case 5: // Mohawk
                 return <path d="M 45 5 L 55 5 L 52 40 L 48 40 Z" fill={hairColor} stroke={stroke} strokeWidth={strokeWidth} transform={transform} />;
             case 6: // Crazy
@@ -587,16 +735,15 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
             <div className={`avatar-wrapper ${getAnimationClass()}`}>
                 <svg viewBox="0 0 100 180" className="avatar-svg">
                     <g transform={walking ? `translate(0, ${WALK_BODY[walkFrame].y})` : ''}>
-                    <StylizedBody />
                     <HairBack />
+                    <StylizedBody />
                     <BodyShape />
+                    <HairScalp />
                     {direction !== 'back' && (
                         <g transform={faceTransform}>
                             <Cheeks />
                             <Nose />
-                            <Eyebrows />
                             <EyeBalls />
-                            <Accessories />
                             <FacialHair />
                             <Mouth />
                         </g>
@@ -604,6 +751,12 @@ export const Avatar: React.FC<AvatarProps> = ({ seed, size = 100, className = ''
                     <g transform={direction !== 'back' ? faceTransform : ''}>
                         <HairFront />
                     </g>
+                    {direction !== 'back' && (
+                        <g transform={faceTransform}>
+                            <Eyebrows />
+                            <Accessories />
+                        </g>
+                    )}
                     <Particles />
                     </g>
                 </svg>

@@ -102,10 +102,10 @@ direction?: 'front' | 'left' | 'right' | 'back'
 
 | Direction | Face | Hair | Arms | Torso |
 |-----------|------|------|------|-------|
-| `front` | ✅ centered | Front + back | Both sides, full width | Full |
-| `back` | ❌ hidden | Both (maintains silhouette) | Both sides | Full |
-| `left` | ✅ `translate(-15, 0)` | Shifted | Near arm centered, far arm behind torso | Slimmer |
-| `right` | ✅ `translate(+15, 0)` | Shifted | Near arm centered, far arm behind torso | Slimmer |
+| `front` | ✅ centered | Front + Back (visible volume) | Both sides, full width | Full |
+| `back` | ❌ hidden | Scalp Cap (covers face) | Both sides | Full |
+| `left` | ✅ `translate(-15, 0)` | Side-matched Cap | Near arm centered, far arm behind torso | Slimmer |
+| `right` | ✅ `translate(+15, 0)` | Side-matched Cap | Near arm centered, far arm behind torso | Slimmer |
 
 ### Z-order trick for arms
 SVG z-order is DOM paint order. Each arm is rendered **twice** — once before the torso and once after — and the `behind` flag from the pose table controls which copy is visible:
@@ -211,12 +211,27 @@ The `walkFrame` state and pose tables are renderer-agnostic. Replace SVG element
 
 ---
 
-## 10. File Structure
+## 11. Multi-Layer Hair Rendering
+
+To achieve a premium "turntable" look without bald spots or "unibrow" effects, the hair is split into three distinct layers across the SVG stack:
+
+1. **HairBack (Bottom Layer)**: Renders behind the head and body. This provides the "volume" visible behind the shoulders when facing forward, ensuring characters don't look bald from the front.
+2. **HairScalp (Middle Layer)**: Renders on top of the head (`BodyShape`).
+   - **Facing Back**: It draws a full "back-of-head" cap that covers the face area.
+   - **Facing Side**: It draws a "slicked-back" cap from forehead to nape to close gaps created by the face rotation.
+3. **HairFront (Top Layer)**: Renders the bangs and styling elements (Spikes, Bob fringe, Mohawk). These use specific skull-cap geometry (`A 38 38`) to connect seamlessly with the background volume.
+
+### Stylistic Overlays
+For maximum expressiveness, **Eyebrows** and **Accessories (Glasses)** are rendered on top of **HairFront**. This is a stylistic choice that keeps the character's emotion and identity visible even when they have long bangs.
+
+---
+
+## 12. File Structure
 
 ```
 src/
 ├── Avatar.tsx       # Main component: genetics, behaviors, rendering
 ├── types.ts         # Expression type
-├── index.css        # Expression idle animations (legacy walk CSS still present)
+├── index.css        # Expression idle animations
 └── App.tsx          # Demo UI
 ```
